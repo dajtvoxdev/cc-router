@@ -1,0 +1,36 @@
+# Build outputs
+bin/
+obj/
+publish/
+release/
+*.user
+
+# Visual Studio
+.vs/
+*.suo
+*.opensdf
+*.sdf
+*.cachefile
+
+# Rider / IntelliJ
+.idea/
+
+# VS Code (keep workspace settings)
+.vscode/launch.json
+.vscode/tasks.json
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Local Claude Code memory / scratch
+.remember/
+.claude/
+CLAUDE.md.local
+
+# NuGet
+*.nupkg
+packages/
+
+# Logs
+*.log
