@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v1.0.0)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build releases (self-contained + framework-dependent)
+        shell: pwsh
+        run: ./build-release.ps1
+
+      - name: Resolve tag
+        id: tag
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -like 'refs/tags/*') {
+            $tag = $env:GITHUB_REF -replace '^refs/tags/', ''
+          } else {
+            $tag = '${{ github.event.inputs.tag }}'
+          }
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "Releasing tag: $tag"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: CCRouter ${{ steps.tag.outputs.tag }}
+          generate_release_notes: true
+          body: |
+            ## Downloads
+
+            | File | Size | Notes |
+            |---|---|---|
+            | **CCRouter-win-x64.zip** | ~63 MB | Self-contained — no .NET runtime needed |
+            | **CCRouter-win-x64-fxdep.zip** | ~0.4 MB | Requires [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) |
+
+            See [README](https://github.com/${{ github.repository }}#readme) for setup instructions.
+          files: |
+            release/CCRouter-win-x64.zip
+            release/CCRouter-win-x64-fxdep.zip
