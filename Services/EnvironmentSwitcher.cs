@@ -42,6 +42,10 @@ public static class EnvironmentSwitcher
     public static string? ReadCurrentBaseUrl() =>
         Environment.GetEnvironmentVariable("ANTHROPIC_BASE_URL", EnvironmentVariableTarget.User);
 
-    private static void SetUser(string name, string? value) =>
+    private static void SetUser(string name, string? value)
+    {
         Environment.SetEnvironmentVariable(name, value, EnvironmentVariableTarget.User);
+        // Also update process-level so current session and children pick up the change
+        Environment.SetEnvironmentVariable(name, value);
+    }
 }
