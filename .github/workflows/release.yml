@@ -25,9 +25,46 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Build releases (self-contained + framework-dependent)
+      - name: Prepare artifacts dir
         shell: pwsh
-        run: ./build-release.ps1
+        run: New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+
+      - name: Publish self-contained (compressed)
+        shell: pwsh
+        run: |
+          dotnet publish CCRouter.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true `
+            -p:DebugType=none `
+            -p:DebugSymbols=false `
+            -o publish/selfcontained
+          Copy-Item publish/selfcontained/CCRouter.exe artifacts/CCRouter.exe -Force
+
+      - name: Clean obj/bin between publishes
+        shell: pwsh
+        run: Remove-Item bin, obj -Recurse -Force -ErrorAction SilentlyContinue
+
+      - name: Publish framework-dependent
+        shell: pwsh
+        run: |
+          dotnet publish CCRouter.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained false `
+            -p:PublishSingleFile=true `
+            -p:DebugType=none `
+            -p:DebugSymbols=false `
+            -o publish/fxdep
+          Copy-Item publish/fxdep/CCRouter.exe artifacts/CCRouter-fxdep.exe -Force
+
+      - name: Show artifact sizes
+        shell: pwsh
+        run: |
+          Get-ChildItem artifacts | Format-Table Name, @{Name='SizeMB';Expression={[math]::Round($_.Length/1MB,2)}}
 
       - name: Resolve tag
         id: tag
@@ -50,12 +87,14 @@ jobs:
           body: |
             ## Downloads
 
-            | File | Size | Notes |
-            |---|---|---|
-            | **CCRouter-win-x64.zip** | ~63 MB | Self-contained — no .NET runtime needed |
-            | **CCRouter-win-x64-fxdep.zip** | ~0.4 MB | Requires [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) |
+            | File | Notes |
+            |---|---|
+            | **CCRouter.exe** | Self-contained — chạy ngay, không cần cài .NET runtime |
+            | **CCRouter-fxdep.exe** | Cần cài [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) trước (file nhẹ hơn nhiều) |
 
-            See [README](https://github.com/${{ github.repository }}#readme) for setup instructions.
+            Tải file .exe → chạy trực tiếp. Lần đầu Windows SmartScreen có thể cảnh báo → click **More info** → **Run anyway**.
+
+            Xem [README](https://github.com/${{ github.repository }}#readme) để biết cách dùng.
           files: |
-            release/CCRouter-win-x64.zip
-            release/CCRouter-win-x64-fxdep.zip
+            artifacts/CCRouter.exe
+            artifacts/CCRouter-fxdep.exe
