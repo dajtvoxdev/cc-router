@@ -1,164 +1,169 @@
 # CCRouter
 
-> Tray app Windows nhỏ gọn để chuyển nhanh **base URL của Claude Code** giữa nhiều backend tương thích Anthropic (Z.AI, Kimi, DeepSeek, local proxy…) và quay về subscription mặc định của Claude.
+> Lightweight Windows tray app to quickly switch **Claude Code's base URL** between multiple Anthropic-compatible backends (Z.AI, Kimi, DeepSeek, local proxy…) and back to the default Claude subscription.
 
 ![Platform](https://img.shields.io/badge/Platform-Windows%2010%2B-blue)
 ![.NET](https://img.shields.io/badge/.NET-8.0-512BD4)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-## Tại sao cần app này?
+🇻🇳 [Tiếng Việt](README.vi.md)
 
-Claude Code hỗ trợ trỏ sang các backend OpenAI/Anthropic-compatible bằng env vars (`ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN`…) và file `~/.claude/settings.json`. Nhưng:
+## Why this app?
 
-- Đổi bằng PowerShell (`setx` / `[Environment]::SetEnvironmentVariable`) rất rườm rà.
-- Phải nhớ key của từng backend, dán đi dán lại dễ sai.
-- Quay về subscription mặc định = phải xóa từng env var, dễ sót.
-- Token API lưu plain text trong shell history rất rủi ro.
+Claude Code can be pointed at any OpenAI/Anthropic-compatible backend via env vars (`ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN`, …) and `~/.claude/settings.json`. But:
 
-App này giải quyết tất cả: lưu profile, switch 1 click ở taskbar, mã hóa token, có hotkey và tự động restart terminal/VSCode.
+- Switching via PowerShell (`setx` / `[Environment]::SetEnvironmentVariable`) is tedious.
+- You have to remember each backend's API key and paste it repeatedly.
+- Going back to the default subscription means clearing each env var manually — easy to miss one.
+- API tokens stored as plain text in shell history are a security risk.
 
-## Tính năng
+CCRouter solves all of this: stores profiles, switches with one click from the tray, encrypts tokens with DPAPI, supports global hotkeys, and can auto-restart your terminal/VSCode after a switch.
 
-- 🗂 **Quản lý nhiều profile**: Z.AI, Kimi, DeepSeek, local proxy, default Claude — không giới hạn số lượng.
-- 🎯 **Switch 1 click** từ system tray (right-click icon).
-- ⌨️ **Global hotkey** (vd `Ctrl+Alt+1` cho Z.AI, `Ctrl+Alt+0` cho Default).
-- 🔐 **Token mã hóa DPAPI** (CurrentUser scope) — file `profiles.json` copy sang máy khác cũng không đọc được.
-- 🔄 **Mirror sang `~/.claude/settings.json`** — Claude Code chỉ cần `/exit` rồi `claude` lại, không cần restart terminal.
-- 🚀 **Auto restart** terminal/VSCode đang mở (có dialog confirm + cảnh báo unsaved changes của VSCode).
-- 🪟 **Chạy nền ở taskbar**, autostart cùng Windows tùy chọn.
-- 🧪 **Test connection** từng profile (gọi `/v1/models` với token).
+## Features
+
+- 🗂 **Multi-profile management** — Z.AI, Kimi, DeepSeek, local proxy, default Claude. Unlimited entries.
+- 🎯 **One-click switching** from the system tray (right-click the icon).
+- ⌨️ **Global hotkeys** (e.g. `Ctrl+Alt+1` for Z.AI, `Ctrl+Alt+0` for Default).
+- 🔐 **DPAPI-encrypted tokens** (CurrentUser scope) — `profiles.json` is unreadable if copied to another machine.
+- 🔄 **Mirrors to `~/.claude/settings.json`** — Claude Code only needs `/exit` then `claude` again, no terminal restart required.
+- 🚀 **Auto-restart** open terminals / VSCode (with confirm dialog and an explicit warning about VSCode unsaved changes).
+- 🪟 **Runs in the background tray**, optional auto-start with Windows.
+- 🧪 **Test connection** per profile (calls `/v1/models` with the configured token).
 - 📦 **Single instance** (Mutex), close-to-tray.
 
-## Cài đặt
+## Install
 
-### Cách 1: Tải bản release (khuyến nghị)
+### Option 1 — Download a release (recommended)
 
-1. Vào [Releases](../../releases) và tải `CCRouter-win-x64.zip` mới nhất.
-2. Giải nén ra folder bất kỳ (vd `C:\Tools\CCRouter\`).
-3. Chạy `CCRouter.exe` — icon tray xuất hiện ở góc phải taskbar.
-4. (Tùy chọn) Right-click tray → **Open Settings** → tick **Start with Windows**.
+1. Go to [Releases](../../releases) and download the latest `CCRouter.exe`.
+   - **`CCRouter.exe`** — self-contained (~68 MB), no .NET runtime needed.
+   - **`CCRouter-fxdep.exe`** — small (~1 MB), requires [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0).
+2. Move the .exe somewhere persistent (e.g. `C:\Tools\CCRouter\CCRouter.exe`).
+3. Run it — the tray icon appears in the bottom-right of the taskbar.
+4. (Optional) Right-click tray → **Open Settings** → tick **Start with Windows**.
 
-> **Lưu ý SmartScreen**: Lần đầu chạy Windows có thể cảnh báo "Windows protected your PC". Click **More info** → **Run anyway**. Bản release chưa code-sign.
+> **SmartScreen note**: On first launch Windows may show "Windows protected your PC". Click **More info** → **Run anyway**. The release builds are not yet code-signed.
 
-### Cách 2: Build từ source
+### Option 2 — Build from source
 
-Yêu cầu: [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) trên Windows.
+Requires [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) on Windows.
 
 ```bash
-git clone https://github.com/<your-username>/CCRouter.git
-cd CCRouter
+git clone https://github.com/dajtvoxdev/cc-router.git
+cd cc-router
 dotnet run
 ```
 
-Build release self-contained (không cần .NET runtime trên máy đích):
+Self-contained release build (no .NET runtime needed on the target machine):
 
 ```bash
-dotnet publish -c Release -r win-x64 --self-contained true ^
-  /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true
+dotnet publish -c Release -r win-x64 -p:SelfContained=true ^
+  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true ^
+  -p:EnableCompressionInSingleFile=true
 ```
 
-Output: `bin\Release\net8.0-windows\win-x64\publish\CCRouter.exe` (~150 MB).
-
-Build framework-dependent (nhỏ hơn ~5 MB, máy đích cần [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)):
+Framework-dependent build (much smaller, target machine needs the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)):
 
 ```bash
-dotnet publish -c Release -r win-x64 --self-contained false /p:PublishSingleFile=true
+dotnet publish -c Release -r win-x64 -p:SelfContained=false -p:PublishSingleFile=true
 ```
 
-## Hướng dẫn sử dụng
+Or just run `./build-release.ps1` to produce both flavors at once.
 
-### Thêm profile Z.AI
+## Usage
 
-1. Right-click icon tray → **Open Settings**.
-2. Click **+ New** → điền:
+### Add a Z.AI profile
+
+1. Right-click the tray icon → **Open Settings**.
+2. Click **+ New** and fill in:
    - **Name**: `Z.AI`
    - **Base URL**: `https://api.z.ai/api/anthropic`
-   - **Auth Token**: API key lấy từ <https://z.ai/manage-apikey/apikey-list>
-   - **API_TIMEOUT_MS**: `3000000` (Z.AI khuyến nghị)
+   - **Auth Token**: API key from <https://z.ai/manage-apikey/apikey-list>
+   - **API_TIMEOUT_MS**: `3000000` (recommended by Z.AI)
    - **Opus model**: `GLM-4.7`
    - **Sonnet model**: `GLM-4.7`
    - **Haiku model**: `GLM-4.5-Air`
-   - **Hotkey** (tùy chọn): `CTRL+ALT+1`
+   - **Hotkey** (optional): `CTRL+ALT+1`
 3. Click **Save**.
 
-### Thêm profile Default Claude
+### Add the Default Claude profile
 
-1. Click **+ New** → điền `Name: Default Claude`.
-2. Tick **This is the Default Claude subscription** (sẽ ẩn các field API).
-3. (Tùy chọn) Hotkey `CTRL+ALT+0`.
+1. Click **+ New** and set `Name: Default Claude`.
+2. Tick **This is the Default Claude subscription** (this hides the API fields).
+3. (Optional) Hotkey `CTRL+ALT+0`.
 4. Click **Save**.
 
-### Switch profile
+### Switch profiles
 
-3 cách:
+Three ways:
 
-1. **Tray menu**: Right-click icon → chọn profile.
-2. **Hotkey**: Nhấn tổ hợp đã gán ở bất kỳ app nào.
-3. **Settings window**: Chọn profile trong list → click **⚡ Set Active**.
+1. **Tray menu** — right-click the icon → pick a profile.
+2. **Hotkey** — press the assigned shortcut from any application.
+3. **Settings window** — pick a profile in the list → click **⚡ Set Active**.
 
-Sau khi switch, dialog *"Restart applications?"* sẽ hiện (nếu detect được terminal/VSCode đang mở):
+After switching, a *"Restart applications?"* dialog appears (if open terminals/VSCode are detected):
 
-- **Terminals**: default tick — kill rồi mở lại (Windows Terminal / PowerShell).
-- **VSCode**: default *uncheck* (vì kill = mất unsaved changes). Tick nếu muốn.
-- **Don't ask me again**: chỉ hiện toast lần sau (bật lại trong Settings).
+- **Terminals** — checked by default; CCRouter kills and relaunches them (Windows Terminal / PowerShell).
+- **VSCode** — *unchecked* by default (killing it loses unsaved changes). Tick to enable.
+- **Don't ask me again** — only show a toast next time. Re-enable from Settings later.
 
-> **Mẹo**: Nếu bạn chỉ dùng Claude Code, **không cần restart gì cả** — Claude Code đọc `~/.claude/settings.json` mỗi session. Chỉ cần `/exit` rồi gõ `claude` lại.
+> **Tip**: If you only use Claude Code, you don't actually need to restart anything — Claude Code reads `~/.claude/settings.json` every session. Just `/exit` then run `claude` again.
 
-## Cấu hình lưu ở đâu
+## Where settings are stored
 
-| Nội dung | Đường dẫn |
+| Content | Path |
 |---|---|
-| Profile + token (DPAPI encrypted) | `%APPDATA%\CCRouter\profiles.json` |
-| App settings (active, hotkeys, autostart…) | `%APPDATA%\CCRouter\settings.json` |
-| Mirror cho Claude Code đọc | `%USERPROFILE%\.claude\settings.json` (`env` block) |
-| Backup `.claude/settings.json` | `%USERPROFILE%\.claude\settings.json.bak` |
+| Profiles + tokens (DPAPI-encrypted) | `%APPDATA%\CCRouter\profiles.json` |
+| App settings (active profile, hotkeys, autostart…) | `%APPDATA%\CCRouter\settings.json` |
+| Mirror that Claude Code reads | `%USERPROFILE%\.claude\settings.json` (`env` block) |
+| Backup of `.claude/settings.json` | `%USERPROFILE%\.claude\settings.json.bak` |
 
-App **không bao giờ** ghi token plain text. DPAPI scope `CurrentUser` đảm bảo file copy sang user/máy khác không decrypt được.
+CCRouter **never** writes tokens in plaintext. DPAPI's `CurrentUser` scope ensures the file cannot be decrypted on another user account or machine.
 
-## Env vars được quản lý
+## Managed environment variables
 
-App set/clear các biến sau ở User scope khi switch:
+When you switch profiles, CCRouter sets/clears these User-scope variables:
 
-| Variable | Vai trò |
+| Variable | Purpose |
 |---|---|
-| `ANTHROPIC_BASE_URL` | Endpoint backend |
-| `ANTHROPIC_AUTH_TOKEN` | API key (decrypt khi apply) |
-| `API_TIMEOUT_MS` | Timeout request (ms) |
-| `ANTHROPIC_DEFAULT_OPUS_MODEL` | Map model Opus |
-| `ANTHROPIC_DEFAULT_SONNET_MODEL` | Map model Sonnet |
-| `ANTHROPIC_DEFAULT_HAIKU_MODEL` | Map model Haiku |
+| `ANTHROPIC_BASE_URL` | Backend endpoint |
+| `ANTHROPIC_AUTH_TOKEN` | API key (decrypted at apply time) |
+| `API_TIMEOUT_MS` | Request timeout (ms) |
+| `ANTHROPIC_DEFAULT_OPUS_MODEL` | Opus model mapping |
+| `ANTHROPIC_DEFAULT_SONNET_MODEL` | Sonnet model mapping |
+| `ANTHROPIC_DEFAULT_HAIKU_MODEL` | Haiku model mapping |
 
-Profile **Default Claude** = clear hết 6 biến này.
+The **Default Claude** profile clears all six.
 
 ## Troubleshooting
 
-**Q: Sau khi switch, terminal mới vẫn chưa thấy biến mới?**
-A: Kiểm tra terminal có inherit từ `explorer.exe` không (PowerShell mở qua `Win+R` mới đảm bảo). VS Code integrated terminal cần restart toàn bộ Code.exe (Reload Window không đủ).
+**Q: A new terminal still doesn't see the new env vars after switching.**
+A: The terminal must be a freshly launched process inheriting from `explorer.exe` (e.g. PowerShell opened via `Win+R`). VSCode's integrated terminal needs the entire `Code.exe` restarted — Reload Window is not enough.
 
-**Q: Hotkey không hoạt động?**
-A: Có thể tổ hợp đó đã bị app khác giữ. Đổi sang tổ hợp khác (`CTRL+ALT+SHIFT+...`).
+**Q: A hotkey doesn't work.**
+A: It's likely already taken by another app. Pick something more unusual like `CTRL+ALT+SHIFT+...`.
 
-**Q: SmartScreen chặn?**
-A: Click "More info" → "Run anyway". Bản release chưa code-sign.
+**Q: SmartScreen blocks the .exe.**
+A: Click "More info" → "Run anyway". The release builds are not yet code-signed.
 
-**Q: App đã chạy nhưng không thấy icon tray?**
-A: Click mũi tên hiển thị icon ẩn ở taskbar, kéo icon `CCRouter` ra ngoài cho hiện cố định.
+**Q: The app is running but I can't see the tray icon.**
+A: Click the overflow arrow on the taskbar, then drag the `CCRouter` icon out so it stays visible.
 
-**Q: Lỡ làm hỏng `~/.claude/settings.json`?**
-A: Restore từ `~/.claude/settings.json.bak` (app tự backup mỗi lần ghi).
+**Q: I broke `~/.claude/settings.json`.**
+A: Restore from `~/.claude/settings.json.bak` (CCRouter writes a backup on every save).
 
-**Q: Muốn xóa hoàn toàn cấu hình của app?**
-A: Exit app từ tray → xóa folder `%APPDATA%\CCRouter\`.
+**Q: I want to wipe CCRouter's config completely.**
+A: Exit the app from the tray → delete `%APPDATA%\CCRouter\`.
 
 ## Tech stack
 
 - **.NET 8** + **WPF** (`net8.0-windows`)
 - **Hardcodet.NotifyIcon.Wpf** — system tray icon
 - **System.Security.Cryptography.ProtectedData** — DPAPI encryption
-- **System.Text.Json.Nodes** — merge `~/.claude/settings.json` không đụng key khác
-- **P/Invoke** `RegisterHotKey` cho global hotkey
+- **System.Text.Json.Nodes** — merge `~/.claude/settings.json` without touching unrelated keys
+- **P/Invoke** `RegisterHotKey` for global hotkeys
 
-## Cấu trúc project
+## Project layout
 
 ```
 CCRouter/
@@ -166,35 +171,35 @@ CCRouter/
 │   ├── Profile.cs           # Profile data model
 │   └── AppSettings.cs       # App settings (active, hotkeys, autostart…)
 ├── Services/
-│   ├── ProfileStore.cs      # JSON I/O cho profiles + settings
-│   ├── SecretProtector.cs   # DPAPI wrap
+│   ├── ProfileStore.cs              # JSON I/O for profiles + settings
+│   ├── SecretProtector.cs           # DPAPI wrapper
 │   ├── EnvironmentSwitcher.cs       # Set/clear User env vars
-│   ├── ClaudeSettingsManager.cs     # Mirror sang ~/.claude/settings.json
-│   ├── AutostartService.cs  # HKCU\...\Run entry
-│   ├── HotkeyService.cs     # P/Invoke RegisterHotKey
-│   ├── ProcessDetectionService.cs   # Quét terminal/VSCode đang mở
-│   └── ProcessRestarter.cs  # Kill + relaunch
+│   ├── ClaudeSettingsManager.cs     # Mirror to ~/.claude/settings.json
+│   ├── AutostartService.cs          # HKCU\...\Run entry
+│   ├── HotkeyService.cs             # P/Invoke RegisterHotKey
+│   ├── ProcessDetectionService.cs   # Detect open terminals/VSCode
+│   └── ProcessRestarter.cs          # Kill + relaunch
 ├── App.xaml(.cs)            # Mutex + tray + switch flow
-├── MainWindow.xaml(.cs)     # UI quản lý profile
-├── RestartPromptWindow.xaml(.cs)    # Dialog hỏi restart
+├── MainWindow.xaml(.cs)     # Profile management UI
+├── RestartPromptWindow.xaml(.cs)    # Restart-confirmation dialog
 └── Resources/app.ico
 ```
 
 ## Roadmap
 
-- [ ] Import/export profile (cần xử lý DPAPI key giữa máy).
-- [ ] Cleanup mở rộng giống script `chiasegpu` (xóa `statusLine`, `disableLoginPrompt`, `statusline.ps1`).
-- [ ] Restore VSCode workspace cụ thể khi kill+relaunch.
-- [ ] Portable mode (config cạnh exe thay vì `%APPDATA%`).
-- [ ] Theme dark, localization English.
+- [ ] Profile import/export (needs to handle DPAPI keys across machines).
+- [ ] Extended cleanup similar to the `chiasegpu` script (remove `statusLine`, `disableLoginPrompt`, `statusline.ps1`).
+- [ ] Restore the specific VSCode workspace when killing + relaunching.
+- [ ] Portable mode (config next to the exe instead of `%APPDATA%`).
+- [ ] Dark theme.
 
-## Đóng góp
+## Contributing
 
-PR và issue đều welcome. Trước khi PR, vui lòng:
+PRs and issues are welcome. Before opening a PR:
 
-1. `dotnet build` không có warning.
-2. Test thủ công flow switch + restart prompt.
-3. Tránh thêm dependency NuGet không cần thiết.
+1. `dotnet build` must produce no warnings.
+2. Manually test the switch + restart-prompt flow.
+3. Avoid adding unnecessary NuGet dependencies.
 
 ## License
 
@@ -202,4 +207,4 @@ PR và issue đều welcome. Trước khi PR, vui lòng:
 
 ---
 
-> ⚠ **Disclaimer**: App này không liên kết với Anthropic, Z.AI hoặc bất kỳ provider nào. Tự chịu trách nhiệm về việc sử dụng API key và tuân thủ ToS của các backend.
+> ⚠ **Disclaimer**: This app is not affiliated with Anthropic, Z.AI, or any other provider. You are responsible for your own API key usage and for complying with each backend's Terms of Service.
