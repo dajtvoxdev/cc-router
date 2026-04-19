@@ -32,33 +32,17 @@ jobs:
       - name: Publish self-contained (compressed)
         shell: pwsh
         run: |
-          dotnet publish CCRouter.csproj `
-            -c Release `
-            -r win-x64 `
-            --self-contained true `
-            -p:PublishSingleFile=true `
-            -p:IncludeNativeLibrariesForSelfExtract=true `
-            -p:EnableCompressionInSingleFile=true `
-            -p:DebugType=none `
-            -p:DebugSymbols=false `
-            -o publish/selfcontained
+          dotnet publish CCRouter.csproj -c Release -r win-x64 -p:SelfContained=true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:DebugSymbols=false -o publish/selfcontained
           Copy-Item publish/selfcontained/CCRouter.exe artifacts/CCRouter.exe -Force
 
       - name: Clean obj/bin between publishes
         shell: pwsh
-        run: Remove-Item bin, obj -Recurse -Force -ErrorAction SilentlyContinue
+        run: Remove-Item bin, obj, publish -Recurse -Force -ErrorAction SilentlyContinue
 
       - name: Publish framework-dependent
         shell: pwsh
         run: |
-          dotnet publish CCRouter.csproj `
-            -c Release `
-            -r win-x64 `
-            --self-contained false `
-            -p:PublishSingleFile=true `
-            -p:DebugType=none `
-            -p:DebugSymbols=false `
-            -o publish/fxdep
+          dotnet publish CCRouter.csproj -c Release -r win-x64 -p:SelfContained=false -p:PublishSingleFile=true -p:DebugType=none -p:DebugSymbols=false -o publish/fxdep
           Copy-Item publish/fxdep/CCRouter.exe artifacts/CCRouter-fxdep.exe -Force
 
       - name: Show artifact sizes
