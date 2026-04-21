@@ -84,6 +84,9 @@
 
                     <Label Style="{StaticResource FieldLabel}" Content="Auth Token"/>
                     <PasswordBox x:Name="PwdToken" Style="{StaticResource FieldPwd}"/>
+                    <CheckBox x:Name="ChkUseApiKey"
+                              Content="Also set ANTHROPIC_API_KEY (same value)"
+                              FontSize="11" Margin="0,0,0,8" IsChecked="True"/>
 
                     <Label Style="{StaticResource FieldLabel}" Content="API_TIMEOUT_MS"/>
                     <TextBox x:Name="TxtTimeout" Style="{StaticResource FieldBox}"
@@ -104,6 +107,15 @@
                     <Label Style="{StaticResource FieldLabel}" Content="Haiku model"/>
                     <TextBox x:Name="TxtHaiku" Style="{StaticResource FieldBox}"
                              />
+
+                    <Separator Margin="0,4,0,8"/>
+                    <TextBlock Text="Extra Env Vars (optional)" FontSize="11" FontWeight="SemiBold"
+                               Foreground="#666" Margin="0,0,0,2"/>
+                    <TextBlock FontSize="10" Foreground="#999" Margin="0,0,0,4"
+                               Text="One per line: KEY=VALUE  (e.g. CLAUDE_CODE_AUTO_COMPACT_WINDOW=128000)"/>
+                    <TextBox x:Name="TxtExtraVars" Style="{StaticResource FieldBox}"
+                             AcceptsReturn="True" Height="80" TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="11"/>
                 </StackPanel>
 
                 <Separator Margin="0,4,0,8"/>

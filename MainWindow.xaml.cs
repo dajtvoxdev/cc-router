@@ -83,6 +83,8 @@ public partial class MainWindow : Window
         TxtSonnet.Text = p.SonnetModel ?? "";
         TxtHaiku.Text = p.HaikuModel ?? "";
         TxtNote.Text = p.Note ?? "";
+        ChkUseApiKey.IsChecked = p.UseApiKey;
+        TxtExtraVars.Text = SerializeExtraVars(p.ExtraEnvVars);
 
         App.Settings.HotkeyBindings.TryGetValue(p.Id, out var hk);
         TxtHotkey.Text = hk ?? "";
@@ -99,8 +101,8 @@ public partial class MainWindow : Window
         FormTitle.Text = "Select or create a profile";
         TxtName.Text = ""; TxtBaseUrl.Text = ""; PwdToken.Password = "";
         TxtTimeout.Text = ""; TxtOpus.Text = ""; TxtSonnet.Text = ""; TxtHaiku.Text = "";
-        TxtNote.Text = ""; TxtHotkey.Text = "";
-        ChkDefault.IsChecked = false;
+        TxtNote.Text = ""; TxtHotkey.Text = ""; TxtExtraVars.Text = "";
+        ChkDefault.IsChecked = false; ChkUseApiKey.IsChecked = true;
         PanelApiFields.Visibility = Visibility.Visible;
         TxtStatus.Text = "";
     }
@@ -156,6 +158,8 @@ public partial class MainWindow : Window
         _current.SonnetModel = NullIfEmpty(TxtSonnet.Text);
         _current.HaikuModel = NullIfEmpty(TxtHaiku.Text);
         _current.Note = NullIfEmpty(TxtNote.Text);
+        _current.UseApiKey = ChkUseApiKey.IsChecked == true;
+        _current.ExtraEnvVars = ParseExtraVars(TxtExtraVars.Text);
 
         var pwd = PwdToken.Password;
         _current.AuthTokenEncrypted = string.IsNullOrWhiteSpace(pwd)
@@ -237,6 +241,32 @@ public partial class MainWindow : Window
     }
 
     private static string? NullIfEmpty(string s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+
+    // "KEY=VALUE\nKEY2=VALUE2" → Dictionary
+    private static Dictionary<string, string>? ParseExtraVars(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        var dict = new Dictionary<string, string>();
+        foreach (var line in text.Split('\n'))
+        {
+            var trimmed = line.Trim();
+            if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith('#')) continue;
+            var eq = trimmed.IndexOf('=');
+            if (eq <= 0) continue;
+            var key = trimmed[..eq].Trim();
+            var val = trimmed[(eq + 1)..].Trim();
+            if (!string.IsNullOrEmpty(key))
+                dict[key] = val;
+        }
+        return dict.Count == 0 ? null : dict;
+    }
+
+    // Dictionary → "KEY=VALUE\nKEY2=VALUE2"
+    private static string SerializeExtraVars(Dictionary<string, string>? vars)
+    {
+        if (vars == null || vars.Count == 0) return "";
+        return string.Join("\n", vars.Select(kv => $"{kv.Key}={kv.Value}"));
+    }
 }
 
 // Simple VM for list binding

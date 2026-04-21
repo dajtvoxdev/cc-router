@@ -13,15 +13,19 @@ public static class ClaudeSettingsManager
         ".claude",
         "settings.json");
 
-    private static readonly string[] ManagedEnvKeys =
+    private static readonly string[] BuiltInKeys =
     [
         "ANTHROPIC_BASE_URL",
         "ANTHROPIC_AUTH_TOKEN",
+        "ANTHROPIC_API_KEY",
         "API_TIMEOUT_MS",
         "ANTHROPIC_DEFAULT_OPUS_MODEL",
         "ANTHROPIC_DEFAULT_SONNET_MODEL",
         "ANTHROPIC_DEFAULT_HAIKU_MODEL",
     ];
+
+    // Track extra keys written by the previous Apply() so they can be removed on next switch.
+    private static string[] _prevExtraKeys = [];
 
     public static void Apply(Profile p)
     {
@@ -33,9 +37,15 @@ public static class ClaudeSettingsManager
 
         var env = root["env"] as JsonObject ?? new JsonObject();
 
-        // Always strip our managed keys so old values don't linger.
-        foreach (var k in ManagedEnvKeys)
+        // Remove built-in keys
+        foreach (var k in BuiltInKeys)
             env.Remove(k);
+
+        // Remove extra keys from the previous profile
+        foreach (var k in _prevExtraKeys)
+            env.Remove(k);
+
+        _prevExtraKeys = [];
 
         if (!p.IsDefaultClaude)
         {
@@ -48,11 +58,26 @@ public static class ClaudeSettingsManager
                 catch { token = null; }
             }
             SetIfPresent(env, "ANTHROPIC_AUTH_TOKEN", token);
+            if (p.UseApiKey)
+                SetIfPresent(env, "ANTHROPIC_API_KEY", token);
 
             SetIfPresent(env, "API_TIMEOUT_MS", p.TimeoutMs);
             SetIfPresent(env, "ANTHROPIC_DEFAULT_OPUS_MODEL", p.OpusModel);
             SetIfPresent(env, "ANTHROPIC_DEFAULT_SONNET_MODEL", p.SonnetModel);
             SetIfPresent(env, "ANTHROPIC_DEFAULT_HAIKU_MODEL", p.HaikuModel);
+
+            if (p.ExtraEnvVars != null)
+            {
+                var extraKeys = new System.Collections.Generic.List<string>();
+                foreach (var (k, v) in p.ExtraEnvVars)
+                {
+                    if (string.IsNullOrWhiteSpace(k)) continue;
+                    if (!string.IsNullOrWhiteSpace(v))
+                        env[k] = v;
+                    extraKeys.Add(k);
+                }
+                _prevExtraKeys = extraKeys.ToArray();
+            }
         }
 
         if (env.Count == 0) root.Remove("env");
